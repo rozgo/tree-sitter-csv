@@ -4,29 +4,43 @@
 //! tree-sitter [Parser][], and then use the parser to parse some code:
 //!
 //! ```
+//! use tree_sitter::Parser;
+//!
 //! let code = r#"
 //! "Name","Age","Salary"
 //! "John Doe",30,120000
 //! "#;
 //! let mut parser = tree_sitter::Parser::new();
-//! parser.set_language(tree_sitter_csv::language_csv()).expect("Error loading CSV grammar");
+//! let language = tree_sitter_csv::LANGUAGE_CSV;
+//! parser
+//!     .set_language(&language.into())
+//!     .expect("Error loading CSV grammar");
 //! let tree = parser.parse(code, None).unwrap();
+//! assert!(!tree.root_node().has_error());
 //!
 //! let code = r"
 //! Name|Age|Salary
 //! John Doe|30|120000
 //! ";
 //! let mut parser = tree_sitter::Parser::new();
-//! parser.set_language(tree_sitter_csv::language_tsv()).expect("Error loading PSV grammar");
+//! let language = tree_sitter_csv::LANGUAGE_PSV;
+//! parser
+//!     .set_language(&language.into())
+//!     .expect("Error loading PSV grammar");
 //! let tree = parser.parse(code, None).unwrap();
+//! assert!(!tree.root_node().has_error());
 //!
 //! let code = r"
 //! Name\tAge\tSalary
 //! John Doe\t30\t120000
 //! ";
 //! let mut parser = tree_sitter::Parser::new();
-//! parser.set_language(tree_sitter_csv::language_tsv()).expect("Error loading TSV grammar");
+//! let language = tree_sitter_csv::LANGUAGE_TSV;
+//! parser
+//!     .set_language(&language.into())
+//!     .expect("Error loading TSV grammar");
 //! let tree = parser.parse(code, None).unwrap();
+//! assert!(!tree.root_node().has_error());
 //! ```
 //!
 //! [Language]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Language.html
@@ -34,28 +48,23 @@
 //! [Parser]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Parser.html
 //! [tree-sitter]: https://tree-sitter.github.io/
 
-use tree_sitter::Language;
+use tree_sitter_language::LanguageFn;
 
 extern "C" {
-    fn tree_sitter_csv() -> Language;
-    fn tree_sitter_psv() -> Language;
-    fn tree_sitter_tsv() -> Language;
+    fn tree_sitter_csv() -> *const ();
+    fn tree_sitter_psv() -> *const ();
+    fn tree_sitter_tsv() -> *const ();
 }
 
-/// Get the tree-sitter [Language][] for this grammar.
-///
-/// [Language]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Language.html
-pub fn language_csv() -> Language {
-    unsafe { tree_sitter_csv() }
-}
+/// Get the tree-sitter [Language][]
+/// The tree-sitter [`LanguageFn`] for CSV grammar.
+pub const LANGUAGE_CSV: LanguageFn = unsafe { LanguageFn::from_raw(tree_sitter_csv) };
 
-pub fn language_psv() -> Language {
-    unsafe { tree_sitter_psv() }
-}
+/// The tree-sitter [`LanguageFn`] for PSV grammar.
+pub const LANGUAGE_PSV: LanguageFn = unsafe { LanguageFn::from_raw(tree_sitter_psv) };
 
-pub fn language_tsv() -> Language {
-    unsafe { tree_sitter_tsv() }
-}
+/// The tree-sitter [`LanguageFn`] for TSV grammar.
+pub const LANGUAGE_TSV: LanguageFn = unsafe { LanguageFn::from_raw(tree_sitter_tsv) };
 
 /// The content of the [`grammar.json`][] file for CSV.
 pub const GRAMMAR_JSON_CSV: &str = include_str!("../../csv/src/grammar.json");
@@ -96,17 +105,17 @@ mod tests {
     fn test_can_load_grammar() {
         let mut parser = tree_sitter::Parser::new();
         parser
-            .set_language(super::language_csv())
+            .set_language(&super::LANGUAGE_CSV.into())
             .expect("Error loading CSV grammar");
 
         let mut parser = tree_sitter::Parser::new();
         parser
-            .set_language(super::language_psv())
+            .set_language(&super::LANGUAGE_PSV.into())
             .expect("Error loading PSV grammar");
 
         let mut parser = tree_sitter::Parser::new();
         parser
-            .set_language(super::language_tsv())
+            .set_language(&super::LANGUAGE_TSV.into())
             .expect("Error loading TSV grammar");
     }
 }
